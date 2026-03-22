@@ -1,5 +1,5 @@
 {
-  "name": "p-engine",
+  "name": "q",
   "version": "1.0.0",
   "description": "Universal Video Downloader Engine v99",
   "main": "server.js",
