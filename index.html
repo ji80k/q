@@ -1,159 +1,549 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AETHER SENTINEL | PREMIUM V1.5</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aether Sentinel - Spotify Premium Clone</title>
+    
+    <!-- 1. Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. FontAwesome 6.5.1 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-    <script src="https://upload-widget.cloudinary.com/global/all.js"></script>
+    
+    <!-- 3. Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- 4. Cloudinary Widget -->
+    <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
-        :root { --p-green: #1DB954; --bg: #050505; }
-        body { background: var(--bg); color: white; font-family: 'Cairo', sans-serif; overflow: hidden; margin: 0; }
-        .track-card:active { transform: scale(0.98); background: rgba(255,255,255,0.1); }
-        .dynamic-bg { position: fixed; inset: 0; background: radial-gradient(circle at top, #1db95422 0%, transparent 70%); z-index: -1; transition: 1s; }
-        .scroll-area { height: calc(100vh - 180px); overflow-y: auto; scrollbar-width: none; }
-        .seekbar-fill { height: 100%; background: var(--p-green); box-shadow: 0 0 10px var(--p-green); width: 0%; transition: 0.1s; }
+        :root { --emerald: #10b981; }
+        body { 
+            font-family: 'JetBrains Mono', monospace; 
+            background-color: #050505; 
+            color: white; 
+            margin: 0;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Tactical UI Elements */
+        .glow-emerald { text-shadow: 0 0 15px rgba(16, 185, 129, 0.6); }
+        .bg-glow { transition: background 1.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        /* Custom Range Input Styling */
+        input[type=range] { -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 12px;
+            width: 12px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            margin-top: -4px;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+        }
     </style>
 </head>
-<body>
+<body class="selection:bg-emerald-500/30">
+    <div id="root"></div>
 
-    <div class="dynamic-bg" id="bg-glow"></div>
+    <!-- 5. React & Dependencies -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
 
-    <header class="p-6 pb-2">
-        <div class="flex justify-between items-center mb-6">
-            <div class="flex items-center gap-2">
-                <i class="fas fa-shield-halved text-[#1DB954] text-xl"></i>
-                <h1 class="font-black text-lg tracking-tighter">AETHER SENTINEL</h1>
-                <span class="text-[8px] bg-[#1DB954] text-black px-1 rounded font-bold">PREMIUM</span>
-            </div>
-            <i class="fas fa-gear opacity-40"></i>
-        </div>
-        <div class="flex items-end gap-4 mb-4">
-            <img id="main-art" src="https://via.placeholder.com/150/000/1DB954?text=SENTINEL" class="w-32 h-32 rounded-lg shadow-2xl shadow-[#1db95422]">
-            <div>
-                <p class="text-[10px] font-bold text-[#1DB954] uppercase tracking-widest">Playlist</p>
-                <h2 class="text-3xl font-black">Mega Hit Mix</h2>
-            </div>
-        </div>
-    </header>
+    <!-- 6. Firebase Compat -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
-    <main class="scroll-area px-4" id="track-container">
-        <p class="text-center opacity-20 mt-10 animate-pulse text-xs">جاري سحب البيانات من المصفوفة...</p>
-    </main>
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+        const { motion, AnimatePresence } = FramerMotion;
 
-    <div class="fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-xl border-t border-white/5 p-4 pb-8 z-50">
-        <div class="w-full h-1 bg-white/10 rounded-full mb-4 overflow-hidden">
-            <div id="seek-fill" class="seekbar-fill"></div>
-        </div>
-        <div class="flex justify-between items-center">
-            <div class="flex items-center gap-3 w-1/3">
-                <img id="play-art" src="https://via.placeholder.com/50" class="w-12 h-12 rounded-md object-cover">
-                <div class="overflow-hidden">
-                    <p id="play-title" class="text-xs font-bold truncate">اختر أغنية</p>
-                    <p id="play-artist" class="text-[10px] opacity-40">Aether Station</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-6">
-                <i class="fas fa-backward-step text-xl" onclick="prevTrack()"></i>
-                <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-black" onclick="togglePlay()">
-                    <i id="play-icon" class="fas fa-play text-xl ml-1"></i>
-                </div>
-                <i class="fas fa-forward-step text-xl" onclick="nextTrack()"></i>
-            </div>
-            <div class="flex justify-end w-1/3 gap-4 opacity-40">
-                <i class="fas fa-plus-square text-xl" onclick="openUpload()"></i>
-                <i class="fas fa-satellite-dish text-xl"></i>
-            </div>
-        </div>
-    </div>
-
-    <audio id="main-audio"></audio>
-
-    <script>
-        // 1. Firebase Setup
-        const firebaseConfig = { databaseURL: "https://gorm-b3316-default-rtdb.firebaseio.com/" };
-        firebase.initializeApp(firebaseConfig);
+        // --- Firebase Initialization ---
+        const firebaseConfig = {
+            databaseURL: "https://gorm-b3316-default-rtdb.firebaseio.com/"
+        };
+        
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         const db = firebase.database();
 
-        // 2. Global Variables
-        let tracks = [];
-        let currentIndex = -1;
-        const audio = document.getElementById('main-audio');
-        const playIcon = document.getElementById('play-icon');
-        const seekFill = document.getElementById('seek-fill');
+        function App() {
+            const [tracks, setTracks] = useState([]);
+            const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+            const [isPlaying, setIsPlaying] = useState(false);
+            const [progress, setProgress] = useState(0);
+            const [duration, setDuration] = useState(0);
+            const [volume, setVolume] = useState(0.8);
+            const [isMuted, setIsMuted] = useState(false);
+            const [repeatMode, setRepeatMode] = useState('off'); // off, all, one
+            const [isShuffle, setIsShuffle] = useState(false);
+            const [showLyrics, setShowLyrics] = useState(false);
+            const [searchQuery, setSearchQuery] = useState('');
+            const [isSearching, setIsSearching] = useState(false);
+            const [toasts, setToasts] = useState([]);
+            const [extractedColor, setExtractedColor] = useState('#10b981');
 
-        // 3. Load Data
-        db.ref('sentinel_content').on('value', snap => {
-            const data = snap.val();
-            const container = document.getElementById('track-container');
-            if(!data) {
-                container.innerHTML = `<div class="p-10 text-center opacity-30 text-xs">المصفوفة فارغة.. ارفع أول أغنية الآن</div>`;
-                return;
-            }
-            tracks = Object.keys(data).map(id => ({id, ...data[id]}));
-            container.innerHTML = '';
-            tracks.reverse().forEach((track, index) => {
-                container.innerHTML += `
-                    <div class="track-card flex items-center gap-4 p-3 rounded-xl transition-all mb-1" onclick="playTrack(${tracks.length - 1 - index})">
-                        <i class="fas fa-ellipsis-v opacity-20 ml-2"></i>
-                        <div class="flex-1 text-right">
-                            <p class="text-sm font-bold truncate">${track.id.substring(0,10)}</p>
-                            <p class="text-[9px] opacity-40 uppercase">Sentinel Node</p>
-                        </div>
-                        <img src="${track.url.replace('.mp4', '.jpg')}" class="w-12 h-12 rounded object-cover bg-black" onerror="this.src='https://via.placeholder.com/50/000/1DB954?text=♫'">
+            const audioRef = useRef(new Audio());
+            const canvasRef = useRef(null);
+            const analyserRef = useRef(null);
+            const audioCtxRef = useRef(null);
+            const lyricsContainerRef = useRef(null);
+
+            const currentTrack = tracks[currentTrackIndex];
+
+            // --- 1. Data Sync ---
+            useEffect(() => {
+                const tracksRef = db.ref('tracks');
+                tracksRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        const trackList = Object.entries(data).map(([id, val]) => ({ 
+                            id, 
+                            ...val,
+                            lyrics: val.lyrics || [
+                                "Initializing Aether Sentinel...",
+                                "Syncing secure audio stream...",
+                                "Decrypting track metadata...",
+                                "Shadow Core active.",
+                                "Enjoy the premium experience."
+                            ]
+                        }));
+                        setTracks(trackList);
+                    }
+                });
+                return () => tracksRef.off();
+            }, []);
+
+            // --- 2. Audio Context & Visualizer (Lazy Init) ---
+            const initAudioContext = () => {
+                if (!audioCtxRef.current) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    const ctx = new AudioContext();
+                    const analyser = ctx.createAnalyser();
+                    const source = ctx.createMediaElementSource(audioRef.current);
+                    source.connect(analyser);
+                    analyser.connect(ctx.destination);
+                    analyser.fftSize = 256;
+                    
+                    audioCtxRef.current = ctx;
+                    analyserRef.current = analyser;
+                }
+                if (audioCtxRef.current.state === 'suspended') {
+                    audioCtxRef.current.resume();
+                }
+            };
+
+            useEffect(() => {
+                const animate = () => {
+                    if (!canvasRef.current || !analyserRef.current) {
+                        requestAnimationFrame(animate);
+                        return;
+                    }
+                    const canvas = canvasRef.current;
+                    const ctx = canvas.getContext('2d');
+                    const bufferLength = analyserRef.current.frequencyBinCount;
+                    const dataArray = new Uint8Array(bufferLength);
+                    analyserRef.current.getByteFrequencyData(dataArray);
+
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    const barWidth = (canvas.width / bufferLength) * 2.5;
+                    let x = 0;
+
+                    for (let i = 0; i < bufferLength; i++) {
+                        const barHeight = (dataArray[i] / 255) * canvas.height;
+                        ctx.fillStyle = `rgba(16, 185, 129, ${dataArray[i] / 255})`;
+                        ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                        x += barWidth + 1;
+                    }
+                    requestAnimationFrame(animate);
+                };
+                animate();
+            }, []);
+
+            // --- 3. Playback Logic ---
+            useEffect(() => {
+                if (currentTrack) {
+                    audioRef.current.src = currentTrack.url;
+                    if (isPlaying) {
+                        audioRef.current.play().catch(e => console.log("Playback blocked"));
+                    }
+                    addToast(`[SYNCING_SECURE_AUDIO]: ${currentTrack.title.toUpperCase()}`);
+                    extractColor(currentTrack.artwork);
+                }
+            }, [currentTrackIndex]);
+
+            useEffect(() => {
+                if (isPlaying) {
+                    initAudioContext();
+                    audioRef.current.play().catch(() => setIsPlaying(false));
+                } else {
+                    audioRef.current.pause();
+                }
+            }, [isPlaying]);
+
+            useEffect(() => {
+                audioRef.current.volume = isMuted ? 0 : volume;
+            }, [volume, isMuted]);
+
+            useEffect(() => {
+                const audio = audioRef.current;
+                const onTimeUpdate = () => setProgress(audio.currentTime);
+                const onLoadedMetadata = () => setDuration(audio.duration);
+                const onEnded = () => {
+                    if (repeatMode === 'one') {
+                        audio.currentTime = 0;
+                        audio.play();
+                    } else {
+                        handleNext();
+                    }
+                };
+
+                audio.addEventListener('timeupdate', onTimeUpdate);
+                audio.addEventListener('loadedmetadata', onLoadedMetadata);
+                audio.addEventListener('ended', onEnded);
+                return () => {
+                    audio.removeEventListener('timeupdate', onTimeUpdate);
+                    audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+                    audio.removeEventListener('ended', onEnded);
+                };
+            }, [currentTrackIndex, repeatMode, isShuffle]);
+
+            const handleNext = () => {
+                if (isShuffle) {
+                    setCurrentTrackIndex(Math.floor(Math.random() * tracks.length));
+                } else {
+                    setCurrentTrackIndex((prev) => (prev + 1) % tracks.length);
+                }
+                playSound('hum');
+            };
+
+            const handlePrev = () => {
+                setCurrentTrackIndex((prev) => (prev - 1 + tracks.length) % tracks.length);
+                playSound('hum');
+            };
+
+            // --- 4. Helpers ---
+            const addToast = (msg) => {
+                const id = Date.now();
+                setToasts(prev => [...prev, { id, msg }]);
+                setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
+            };
+
+            const playSound = (type) => {
+                if (!audioCtxRef.current) return;
+                const ctx = audioCtxRef.current;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                if (type === 'click') {
+                    osc.frequency.setValueAtTime(800, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+                } else {
+                    osc.frequency.setValueAtTime(150, ctx.currentTime);
+                    gain.gain.setValueAtTime(0.05, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                }
+                osc.start();
+                osc.stop(ctx.currentTime + 0.3);
+            };
+
+            const extractColor = (url) => {
+                if (!url) return;
+                const img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.src = url;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = 1; canvas.height = 1;
+                    ctx.drawImage(img, 0, 0, 1, 1);
+                    const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+                    setExtractedColor(`rgb(${r}, ${g}, ${b})`);
+                };
+            };
+
+            const formatTime = (time) => {
+                if (isNaN(time)) return "0:00";
+                const mins = Math.floor(time / 60);
+                const secs = Math.floor(time % 60);
+                return `${mins}:${secs.toString().padStart(2, '0')}`;
+            };
+
+            const activeLyricIndex = useMemo(() => {
+                if (!currentTrack?.lyrics) return 0;
+                return Math.floor(progress / 4) % currentTrack.lyrics.length;
+            }, [progress, currentTrack]);
+
+            useEffect(() => {
+                if (showLyrics && lyricsContainerRef.current) {
+                    const active = lyricsContainerRef.current.children[activeLyricIndex];
+                    if (active) active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, [activeLyricIndex, showLyrics]);
+
+            const filteredTracks = tracks.filter(t => 
+                t.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                t.artist.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+
+            const openUploadWidget = () => {
+                playSound('click');
+                window.cloudinary.openUploadWidget({
+                    cloudName: 'dlgwjrf8b',
+                    uploadPreset: 'LZPI_5',
+                    sources: ['local', 'url'],
+                    multiple: false
+                }, (error, result) => {
+                    if (!error && result && result.event === "success") {
+                        const newTrack = {
+                            title: result.info.original_filename || "New Track",
+                            artist: "Aether Sentinel",
+                            url: result.info.secure_url,
+                            artwork: "https://picsum.photos/seed/aether/300/300",
+                            likes: 0,
+                            lyrics: ["[ENCRYPTED_LYRICS_NODE]", "Aether Sentinel Core Active", "Shadow Core Syncing..."]
+                        };
+                        db.ref('tracks').push(newTrack);
+                        addToast("[UPLOAD_COMPLETE]: NODE_ADDED_TO_MATRIX");
+                    }
+                });
+            };
+
+            if (tracks.length === 0) {
+                return (
+                    <div className="h-screen flex flex-col items-center justify-center bg-[#050505]">
+                        <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mb-4"></div>
+                        <p className="text-emerald-500 font-black tracking-widest animate-pulse">INITIALIZING_MATRIX...</p>
                     </div>
-                `;
-            });
-        });
+                );
+            }
 
-        // 4. Player Functions
-        function playTrack(index) {
-            currentIndex = index;
-            const track = tracks[currentIndex];
-            audio.src = track.url;
-            document.getElementById('play-title').innerText = "Streaming: " + track.id.substring(0,5);
-            document.getElementById('play-art').src = track.url.replace('.mp4', '.jpg');
-            document.getElementById('main-art').src = track.url.replace('.mp4', '.jpg');
-            
-            audio.play();
-            playIcon.className = "fas fa-pause text-xl";
-            
-            // Dynamic Background
-            document.getElementById('bg-glow').style.background = `radial-gradient(circle at top, ${getRandomColor()}44 0%, transparent 70%)`;
+            return (
+                <div className="h-screen w-full bg-[#050505] text-white flex flex-col overflow-hidden relative">
+                    {/* Dynamic Glow Background */}
+                    <div className="fixed inset-0 pointer-events-none transition-all duration-1000 opacity-20 bg-glow"
+                         style={{ background: `radial-gradient(circle at 50% 0%, ${extractedColor} 0%, transparent 80%)` }} />
+
+                    {/* Header Section */}
+                    <header className="relative z-10 px-6 pt-12 pb-6 bg-gradient-to-b from-black/80 to-transparent">
+                        <div className="flex items-center justify-between mb-8">
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h1 className="text-xl font-black tracking-tighter text-emerald-500 glow-emerald">AETHER_SENTINEL</h1>
+                                    <div className="bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded flex items-center gap-1">
+                                        <i className="fas fa-shield-halved text-[10px] text-emerald-500"></i>
+                                        <span className="text-[8px] font-black text-emerald-500 uppercase">Premium</span>
+                                    </div>
+                                </div>
+                                <span className="text-[9px] opacity-40 font-bold uppercase tracking-widest">SHADOW_CORE_SYSTEM_v2.5</span>
+                            </div>
+                            <div className="flex gap-3">
+                                <button onClick={() => { setIsSearching(!isSearching); playSound('click'); }} 
+                                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isSearching ? 'bg-emerald-500 text-black' : 'bg-white/5 hover:bg-white/10'}`}>
+                                    <i className="fas fa-search"></i>
+                                </button>
+                                <button className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center"><i className="fas fa-ellipsis-h"></i></button>
+                            </div>
+                        </div>
+
+                        <AnimatePresence>
+                            {isSearching && (
+                                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="mb-6">
+                                    <div className="relative">
+                                        <input type="text" placeholder="SEARCH_MATRIX..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                                               className="w-full bg-white/5 border border-white/10 rounded-xl px-10 py-3 text-xs focus:outline-none focus:border-emerald-500/50 transition-all" />
+                                        <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500/50"></i>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        <div className="flex items-end gap-6">
+                            <div className="relative group">
+                                <img src={currentTrack.artwork} className="w-32 h-32 rounded-lg shadow-2xl border border-white/10 transition-transform group-hover:scale-105" />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                                    <i className="fas fa-play text-2xl"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <span className="text-[9px] uppercase tracking-[0.4em] text-emerald-500 font-black">Playlist</span>
+                                <h2 className="text-4xl font-black tracking-tighter leading-none mb-2">MEGA_HIT_MIX</h2>
+                                <div className="flex gap-4 text-[10px] opacity-60 font-bold">
+                                    <span className="flex items-center gap-1"><i className="fas fa-bolt text-emerald-500"></i> {filteredTracks.length} NODES</span>
+                                    <span className="flex items-center gap-1"><i className="fas fa-microchip text-emerald-500"></i> SHADOW_CORE</span>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Main Content Area */}
+                    <main className="flex-1 overflow-y-auto px-4 pb-48 scrollbar-hide relative z-10">
+                        <div className="px-2 mb-6">
+                            <canvas ref={canvasRef} width={400} height={60} className="w-full h-12 opacity-40 rounded-lg" />
+                        </div>
+
+                        <button onClick={() => { setShowLyrics(!showLyrics); playSound('click'); }} 
+                                className="w-full p-4 bg-white/5 rounded-xl border border-white/5 flex justify-between items-center mb-6 hover:bg-white/10 transition-all">
+                            <span className="text-[10px] font-black uppercase tracking-widest">Lyrics_Canvas</span>
+                            <i className={`fas fa-chevron-${showLyrics ? 'down' : 'up'} text-xs text-emerald-500`}></i>
+                        </button>
+
+                        <AnimatePresence>
+                            {showLyrics && (
+                                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mb-6">
+                                    <div ref={lyricsContainerRef} className="py-4 flex flex-col gap-4 max-h-64 overflow-y-auto scrollbar-hide px-2">
+                                        {currentTrack.lyrics?.map((line, i) => (
+                                            <p key={i} className={`text-xl font-black transition-all duration-500 ${i === activeLyricIndex ? 'text-emerald-400 scale-105 origin-left' : 'opacity-20'}`}>{line}</p>
+                                        ))}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        <div className="space-y-1">
+                            {filteredTracks.map((track, idx) => (
+                                <div key={track.id} onClick={() => { setCurrentTrackIndex(tracks.indexOf(track)); setIsPlaying(true); }}
+                                     className={`flex items-center gap-4 p-3 rounded-xl transition-all cursor-pointer group ${currentTrack.id === track.id ? 'bg-emerald-500/10 border border-emerald-500/20' : 'hover:bg-white/5'}`}>
+                                    <div className="w-6 text-center text-[10px] opacity-30 font-black group-hover:hidden">{idx + 1}</div>
+                                    <div className="w-6 text-center hidden group-hover:block"><i className="fas fa-play text-[10px] text-emerald-500"></i></div>
+                                    <div className="flex-1">
+                                        <p className={`text-sm font-black truncate ${currentTrack.id === track.id ? 'text-emerald-500' : ''}`}>{track.title}</p>
+                                        <p className="text-[10px] opacity-40 font-bold uppercase tracking-tighter">{track.artist}</p>
+                                    </div>
+                                    <img src={track.artwork} className="w-10 h-10 rounded shadow-lg border border-white/5" />
+                                    <button className="opacity-0 group-hover:opacity-40 hover:opacity-100 transition-opacity"><i className="fas fa-ellipsis-v"></i></button>
+                                </div>
+                            ))}
+                        </div>
+                    </main>
+
+                    {/* Premium Sticky Player */}
+                    <div className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-10 pt-4 bg-gradient-to-t from-black to-black/95 backdrop-blur-2xl border-t border-white/5">
+                        {/* Seekbar */}
+                        <div className="relative w-full h-1 bg-white/10 rounded-full mb-6 cursor-pointer group" onClick={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const x = e.clientX - rect.left;
+                            audioRef.current.currentTime = (x / rect.width) * duration;
+                        }}>
+                            <div className="absolute top-0 left-0 h-full bg-emerald-500 transition-all shadow-[0_0_10px_#10b981]" 
+                                 style={{ width: `${(progress / duration) * 100}%` }} />
+                            <div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                                 style={{ left: `calc(${(progress / duration) * 100}% - 6px)` }} />
+                        </div>
+
+                        <div className="flex items-center justify-between gap-4">
+                            {/* Track Info */}
+                            <div className="flex items-center gap-4 w-1/3">
+                                <motion.div animate={{ rotate: isPlaying ? 360 : 0 }} transition={{ duration: 12, repeat: Infinity, ease: "linear" }} 
+                                            className="w-12 h-12 rounded-full border-2 border-emerald-500/30 p-1 flex-shrink-0">
+                                    <img src={currentTrack.artwork} className="w-full h-full rounded-full object-cover" />
+                                </motion.div>
+                                <div className="hidden sm:block overflow-hidden">
+                                    <p className="text-xs font-black truncate glow-emerald">{currentTrack.title}</p>
+                                    <p className="text-[9px] opacity-40 font-bold uppercase tracking-tighter">{currentTrack.artist}</p>
+                                </div>
+                                <button className="text-emerald-500/40 hover:text-emerald-500 transition-colors ml-2"><i className="far fa-heart"></i></button>
+                            </div>
+
+                            {/* Controls */}
+                            <div className="flex items-center gap-6">
+                                <button onClick={() => { setIsShuffle(!isShuffle); playSound('click'); }} 
+                                        className={`text-sm transition-colors ${isShuffle ? 'text-emerald-500' : 'opacity-40 hover:opacity-100'}`}>
+                                    <i className="fas fa-shuffle"></i>
+                                </button>
+                                <button onClick={handlePrev} className="text-xl opacity-80 hover:opacity-100 hover:text-emerald-500 transition-all"><i className="fas fa-step-backward"></i></button>
+                                <button onClick={() => { setIsPlaying(!isPlaying); playSound('click'); }} 
+                                        className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-black hover:scale-110 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+                                    <i className={`fas fa-${isPlaying ? 'pause' : 'play'} text-xl ml-${isPlaying ? '0' : '1'}`}></i>
+                                </button>
+                                <button onClick={handleNext} className="text-xl opacity-80 hover:opacity-100 hover:text-emerald-500 transition-all"><i className="fas fa-step-forward"></i></button>
+                                <button onClick={() => {
+                                    setRepeatMode(prev => prev === 'off' ? 'all' : prev === 'all' ? 'one' : 'off');
+                                    playSound('click');
+                                }} className={`text-sm relative transition-colors ${repeatMode !== 'off' ? 'text-emerald-500' : 'opacity-40 hover:opacity-100'}`}>
+                                    <i className="fas fa-repeat"></i>
+                                    {repeatMode === 'one' && <span className="absolute -top-1 -right-1 text-[7px] font-black bg-emerald-500 text-black rounded-full w-3 h-3 flex items-center justify-center">1</span>}
+                                </button>
+                            </div>
+
+                            {/* Volume */}
+                            <div className="flex items-center gap-3 w-1/3 justify-end group">
+                                <button onClick={() => setIsMuted(!isMuted)} className="opacity-40 group-hover:opacity-100 transition-opacity">
+                                    <i className={`fas fa-volume-${isMuted || volume === 0 ? 'mute' : volume < 0.5 ? 'low' : 'high'}`}></i>
+                                </button>
+                                <input type="range" min="0" max="1" step="0.01" value={volume} 
+                                       onChange={(e) => setVolume(parseFloat(e.target.value))} 
+                                       className="w-20 accent-emerald-500 h-1 rounded-full bg-white/10 appearance-none cursor-pointer" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Mobile Navigation Bar */}
+                    <nav className="fixed bottom-0 left-0 right-0 z-[60] bg-black/90 backdrop-blur-xl border-t border-white/5 px-10 py-4 flex justify-between items-center sm:hidden">
+                        <button className="text-emerald-500 flex flex-col items-center gap-1">
+                            <i className="fas fa-house text-lg"></i>
+                            <span className="text-[7px] font-black uppercase tracking-widest">Feed</span>
+                        </button>
+                        <button className="opacity-40 flex flex-col items-center gap-1">
+                            <i className="fas fa-magnifying-glass text-lg"></i>
+                            <span className="text-[7px] font-black uppercase tracking-widest">Search</span>
+                        </button>
+                        <button onClick={openUploadWidget} className="w-12 h-12 bg-emerald-500 rounded-full -mt-10 flex items-center justify-center text-black shadow-[0_0_20px_#10b981] active:scale-90 transition-transform">
+                            <i className="fas fa-plus text-xl"></i>
+                        </button>
+                        <button className="opacity-40 flex flex-col items-center gap-1">
+                            <i className="fas fa-layer-group text-lg"></i>
+                            <span className="text-[7px] font-black uppercase tracking-widest">Matrix</span>
+                        </button>
+                        <button className="opacity-40 flex flex-col items-center gap-1">
+                            <i className="fas fa-user-shield text-lg"></i>
+                            <span className="text-[7px] font-black uppercase tracking-widest">Intel</span>
+                        </button>
+                    </nav>
+
+                    {/* Tactical Toasts */}
+                    <div className="fixed top-6 right-6 z-[100] flex flex-col gap-2">
+                        <AnimatePresence>
+                            {toasts.map(t => (
+                                <motion.div key={t.id} initial={{ opacity: 0, x: 50, scale: 0.9 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 20, scale: 0.9 }}
+                                            className="bg-black/80 backdrop-blur-2xl border border-emerald-500/30 px-4 py-2 rounded-lg shadow-2xl flex items-center gap-3">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_5px_#10b981]" />
+                                    <span className="text-[10px] font-black text-emerald-500 tracking-tighter uppercase">{t.msg}</span>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                    </div>
+                </div>
+            );
         }
 
-        function togglePlay() {
-            if(currentIndex === -1 && tracks.length > 0) { playTrack(0); return; }
-            if(audio.paused) { audio.play(); playIcon.className = "fas fa-pause text-xl"; }
-            else { audio.pause(); playIcon.className = "fas fa-play text-xl ml-1"; }
-        }
-
-        audio.ontimeupdate = () => {
-            const pct = (audio.currentTime / audio.duration) * 100;
-            seekFill.style.width = pct + "%";
-        };
-
-        function nextTrack() { if(currentIndex < tracks.length -1) playTrack(currentIndex + 1); }
-        function prevTrack() { if(currentIndex > 0) playTrack(currentIndex - 1); }
-
-        // 5. Cloudinary Upload
-        const myWidget = cloudinary.createUploadWidget({ 
-            cloudName: "dlgwjrf8b", uploadPreset: "LZPI_5", sources: ['local']
-        }, (err, res) => {
-            if (!err && res.event === "success") {
-                db.ref('sentinel_content/').push({ url: res.info.secure_url, likes: 0, timestamp: Date.now() });
+        // --- 7. Secure Mounting ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const rootElement = document.getElementById('root');
+            if (rootElement) {
+                const root = ReactDOM.createRoot(rootElement);
+                root.render(<App />);
             }
         });
-        function openUpload() { myWidget.open(); }
-
-        function getRandomColor() {
-            const colors = ['#1DB954', '#ff00ff', '#00ccff', '#ffcc00'];
-            return colors[Math.floor(Math.random()*colors.length)];
-        }
     </script>
 </body>
 </html>
