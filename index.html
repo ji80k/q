@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AETHER_SENTINEL | AUDIO_MATRIX V1.2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://upload-widget.cloudinary.com/global/all.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Cairo:wght@400;700;900&display=swap');
+        :root { --p-green: #00ff88; --p-magenta: #ff00ff; --bg: #010206; --quantum-glow: 0 0 15px rgba(0, 255, 136, 0.4); }
+        body, html { margin: 0; padding: 0; height: 100%; background: var(--bg); color: #fff; overflow: hidden; font-family: 'Cairo', sans-serif; user-select: none; }
+        
+        .quantum-scan-bar { position: fixed; top: 0; width: 100%; height: 4px; z-index: 1000; background: linear-gradient(90deg, var(--p-green), var(--p-magenta), var(--p-green)); background-size: 200% 100%; animation: scan-move 0.6s linear infinite; }
+        @keyframes scan-move { from { background-position: 0% 0%; } to { background-position: 100% 0%; } }
+        
+        .master-engine { height: calc(100vh - 75px); overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; scroll-behavior: smooth; }
+        .master-engine::-webkit-scrollbar { display: none; }
+        
+        .v-seg { height: calc(100vh - 75px); width: 100vw; scroll-snap-align: start; position: relative; overflow: hidden; background: #000; }
+        video { width: 100%; height: 100%; object-fit: cover; filter: contrast(1.1) brightness(0.9); opacity: 0; transition: opacity 0.5s ease; }
+        .v-seg.active video { opacity: 1; }
+        
+        .ion-hud { position: absolute; inset: 0; pointer-events: none; z-index: 10; background: radial-gradient(circle at center, transparent, rgba(0,0,0,0.6)); border: 1px solid rgba(0, 255, 136, 0.1); }
+        .hud-scan { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: rgba(0, 255, 136, 0.2); animation: scan-line 3s linear infinite; }
+        @keyframes scan-line { 0% { top: 0; } 100% { top: 100%; } }
+        
+        .action-sidebar { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 20px; z-index: 100; }
+        .tactical-btn { width: 58px; height: 58px; background: rgba(0, 5, 15, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(0, 255, 136, 0.2); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; box-shadow: var(--quantum-glow); transition: 0.2s; }
+        
+        #mini-player { position: fixed; bottom: 85px; left: 10px; right: 10px; height: 64px; background: rgba(0, 15, 40, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(0, 255, 136, 0.3); border-radius: 15px; z-index: 150; display: none; align-items: center; padding: 0 12px; box-shadow: 0 0 20px rgba(0, 255, 136, 0.2); }
+        
+        #admin-panel, #chat-panel, #playlist-panel { position: fixed; inset: 0; z-index: 2000; background: rgba(1, 2, 6, 0.98); display: none; flex-direction: column; padding: 40px 25px; border-top: 5px solid var(--p-green); backdrop-filter: blur(30px); overflow-y: auto; }
+        
+        nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 75px; background: rgba(0,0,0,0.95); border-top: 1px solid rgba(0, 255, 136, 0.15); display: flex; justify-content: space-around; align-items: center; z-index: 200; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.5); cursor: pointer; }
+        .nav-item.active { color: var(--p-green); text-shadow: var(--quantum-glow); }
+        .nav-item i { font-size: 20px; }
+        .nav-item span { font-size: 9px; margin-top: 4px; font-weight: 900; }
+
+        .track-card { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 10px; display: flex; align-items: center; gap: 12px; margin-bottom: 8px; border-right: 3px solid var(--p-green); }
+    </style>
+</head>
+<body>
+
+    <div id="toast" class="toast-msg">QUANTUM_AUDIO_ACTIVE</div>
+    <div class="quantum-scan-bar"></div>
+    
+    <header class="fixed top-6 left-6 right-6 z-[500] flex justify-between items-center pointer-events-none">
+        <div class="bg-black/60 p-3 border-l-4 border-[#00ff88] pointer-events-auto rounded flex items-center gap-3">
+            <i class="fas fa-shield-halved text-[#00ff88] animate-pulse"></i>
+            <span class="font-['Share_Tech_Mono'] text-white text-sm font-black tracking-widest uppercase">Aether_Sentinel</span>
+        </div>
+        <div class="font-['Share_Tech_Mono'] text-[10px] text-[#ff00ff]" id="clock">00:00:00</div>
+    </header>
+
+    <div id="mini-player">
+        <img src="https://via.placeholder.com/50" id="m-thumb" class="w-11 h-11 rounded-lg object-cover">
+        <div class="flex-1 mr-3 text-right">
+            <p class="text-xs text-white font-bold truncate" id="m-title">Ready to Stream</p>
+            <p class="text-[9px] text-[#00ff88] opacity-70 uppercase tracking-tighter" id="m-artist">Matrix_Active</p>
+        </div>
+        <div class="flex gap-4 items-center">
+            <i class="fas fa-backward-step opacity-40"></i>
+            <i class="fas fa-play-circle text-3xl text-white" id="m-play-btn" onclick="togglePlayback()"></i>
+            <i class="fas fa-forward-step opacity-40"></i>
+        </div>
+    </div>
+
+    <main class="master-engine" id="video-stack"></main>
+
+    <div id="playlist-panel">
+        <div class="flex justify-between items-center mb-8 border-b border-[#00ff88]/20 pb-4 text-right">
+            <h2 class="font-['Share_Tech_Mono'] text-[#00ff88] text-xl font-bold uppercase">Mega_Hit_Mix</h2>
+            <i class="fas fa-xmark text-2xl opacity-30" onclick="closePanels()"></i>
+        </div>
+        <div id="track-list" class="space-y-2">
+            </div>
+    </div>
+
+    <nav>
+        <div class="nav-item active" onclick="switchMode('video', this)"><i class="fas fa-video"></i><span>الرئيسية</span></div>
+        <div class="nav-item" onclick="switchMode('music', this)"><i class="fas fa-music"></i><span>الموسيقى</span></div>
+        <div class="nav-item" onclick="myWidget.open()"><i class="fas fa-square-plus text-3xl text-[#00ff88]"></i><span>رفع</span></div>
+        <div class="nav-item" onclick="toggleChat()"><i class="fas fa-satellite-dish"></i><span>اتصال</span></div>
+        <div class="nav-item" onclick="checkAdmin()"><i class="fas fa-terminal"></i><span>لوحة</span></div>
+    </nav>
+
+    <script>
+        const MASTER_KEY = "1234";
+        const ADS = { 
+            LIKE: "https://www.effectivegatecpm.com/kckhwnffm5?key=a044912bc242a8918aac753c22e082b1",
+            CHAT: "https://www.effectivegatecpm.com/fd8bgr2e?key=c5bd0ed87d0ddc0c53101f52264d4b1e"
+        };
+
+        firebase.initializeApp({ databaseURL: "https://gorm-b3316-default-rtdb.firebaseio.com/" });
+        const db = firebase.database();
+        const USR_ID = "SENTINEL-" + Math.floor(Math.random()*9999);
+
+        setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-GB'); }, 1000);
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg; t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 2000);
+        }
+
+        // جلب المحتوى من Firebase
+        db.ref('sentinel_content').on('value', snap => {
+            const stack = document.getElementById('video-stack');
+            const tracks = document.getElementById('track-list');
+            const data = snap.val();
+            if(!data) return;
+            
+            stack.innerHTML = ''; tracks.innerHTML = '';
+            Object.keys(data).reverse().forEach(id => {
+                const item = data[id];
+                // واجهة الفيديو
+                stack.innerHTML += `
+                    <section class="v-seg">
+                        <div class="ion-hud">
+                            <div class="hud-scan"></div>
+                        </div>
+                        <video id="vid-${id}" loop playsinline muted data-src="${item.url}" onclick="this.paused?this.play():this.pause()"></video>
+                        <div class="action-sidebar">
+                            <div class="tactical-btn" onclick="window.open('${ADS.LIKE}'); triggerLike('${id}')">
+                                <i class="fas fa-heart-pulse text-[#00ff88]"></i>
+                                <span class="text-white text-[9px] mt-1">${item.likes || 0}</span>
+                            </div>
+                            <div class="tactical-btn text-[#ff00ff]" onclick="toggleChat()">
+                                <i class="fas fa-rss"></i>
+                            </div>
+                        </div>
+                    </section>`;
+                // واجهة الموسيقى (Spotify Style)
+                tracks.innerHTML += `
+                    <div class="track-card" onclick="playAudio('${item.url}', '${id}')">
+                        <i class="fas fa-ellipsis-vertical opacity-20 ml-2"></i>
+                        <div class="flex-1 text-right">
+                            <p class="text-white text-sm font-bold truncate">Intel_Track_${id.substring(0,5)}</p>
+                            <p class="text-[9px] text-gray-500 uppercase">Aether_Station_Node</p>
+                        </div>
+                        <img src="${item.url.replace('.mp4', '.jpg')}" class="w-12 h-12 rounded object-cover bg-black" onerror="this.src='https://via.placeholder.com/50/000/00ff88?text=A'">
+                    </div>`;
+            });
+            initObserver();
+        });
+
+        function switchMode(mode, el) {
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            el.classList.add('active');
+            if(mode === 'music') { document.getElementById('playlist-panel').style.display = 'flex'; }
+            else { closePanels(); }
+        }
+
+        function playAudio(url, id) {
+            const player = document.getElementById('mini-player');
+            document.getElementById('m-title').innerText = "Streaming: " + id.substring(0,8);
+            document.getElementById('m-thumb').src = url.replace('.mp4', '.jpg');
+            player.style.display = 'flex';
+            showToast("AUDIO_SYNC_LOCKED");
+        }
+
+        const myWidget = cloudinary.createUploadWidget({ 
+            cloudName: "dlgwjrf8b", uploadPreset: "LZPI_5", 
+            sources: ['local'], multiple: false
+        }, (err, res) => {
+            if (!err && res.event === "success") {
+                db.ref('sentinel_content/').push({ url: res.info.secure_url, likes: 0, timestamp: Date.now() });
+                showToast("CORE_UPLOADED");
+            }
+        });
+
+        function closePanels() { 
+            document.getElementById('playlist-panel').style.display = 'none'; 
+            document.getElementById('admin-panel').style.display = 'none'; 
+            document.getElementById('chat-panel').style.display = 'none';
+        }
+
+        function initObserver() {
+            const obs = new IntersectionObserver(es => {
+                es.forEach(e => {
+                    const v = e.target.querySelector('video');
+                    if(e.isIntersecting) { if(!v.src) v.src = v.dataset.src; e.target.classList.add('active'); v.play().catch(()=>{}); } 
+                    else { e.target.classList.remove('active'); v.pause(); }
+                });
+            }, { threshold: 0.65 });
+            document.querySelectorAll('.v-seg').forEach(s => obs.observe(s));
+        }
+
+        function toggleChat() { document.getElementById('chat-panel').style.display = 'flex'; }
+        function checkAdmin() { if(prompt("ACCESS_ID:") === MASTER_KEY) document.getElementById('admin-panel').style.display = 'flex'; }
+    </script>
+</body>
+</html>
