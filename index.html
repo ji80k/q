@@ -1,198 +1,422 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AETHER_SENTINEL | AUDIO_MATRIX V1.2</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aether Sentinel - Spotify Premium Clone</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://upload-widget.cloudinary.com/global/all.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Cloudinary Widget -->
+    <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Cairo:wght@400;700;900&display=swap');
-        :root { --p-green: #00ff88; --p-magenta: #ff00ff; --bg: #010206; --quantum-glow: 0 0 15px rgba(0, 255, 136, 0.4); }
-        body, html { margin: 0; padding: 0; height: 100%; background: var(--bg); color: #fff; overflow: hidden; font-family: 'Cairo', sans-serif; user-select: none; }
-        
-        .quantum-scan-bar { position: fixed; top: 0; width: 100%; height: 4px; z-index: 1000; background: linear-gradient(90deg, var(--p-green), var(--p-magenta), var(--p-green)); background-size: 200% 100%; animation: scan-move 0.6s linear infinite; }
-        @keyframes scan-move { from { background-position: 0% 0%; } to { background-position: 100% 0%; } }
-        
-        .master-engine { height: calc(100vh - 75px); overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; scroll-behavior: smooth; }
-        .master-engine::-webkit-scrollbar { display: none; }
-        
-        .v-seg { height: calc(100vh - 75px); width: 100vw; scroll-snap-align: start; position: relative; overflow: hidden; background: #000; }
-        video { width: 100%; height: 100%; object-fit: cover; filter: contrast(1.1) brightness(0.9); opacity: 0; transition: opacity 0.5s ease; }
-        .v-seg.active video { opacity: 1; }
-        
-        .ion-hud { position: absolute; inset: 0; pointer-events: none; z-index: 10; background: radial-gradient(circle at center, transparent, rgba(0,0,0,0.6)); border: 1px solid rgba(0, 255, 136, 0.1); }
-        .hud-scan { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: rgba(0, 255, 136, 0.2); animation: scan-line 3s linear infinite; }
-        @keyframes scan-line { 0% { top: 0; } 100% { top: 100%; } }
-        
-        .action-sidebar { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 20px; z-index: 100; }
-        .tactical-btn { width: 58px; height: 58px; background: rgba(0, 5, 15, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(0, 255, 136, 0.2); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; box-shadow: var(--quantum-glow); transition: 0.2s; }
-        
-        #mini-player { position: fixed; bottom: 85px; left: 10px; right: 10px; height: 64px; background: rgba(0, 15, 40, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(0, 255, 136, 0.3); border-radius: 15px; z-index: 150; display: none; align-items: center; padding: 0 12px; box-shadow: 0 0 20px rgba(0, 255, 136, 0.2); }
-        
-        #admin-panel, #chat-panel, #playlist-panel { position: fixed; inset: 0; z-index: 2000; background: rgba(1, 2, 6, 0.98); display: none; flex-direction: column; padding: 40px 25px; border-top: 5px solid var(--p-green); backdrop-filter: blur(30px); overflow-y: auto; }
-        
-        nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 75px; background: rgba(0,0,0,0.95); border-top: 1px solid rgba(0, 255, 136, 0.15); display: flex; justify-content: space-around; align-items: center; z-index: 200; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.5); cursor: pointer; }
-        .nav-item.active { color: var(--p-green); text-shadow: var(--quantum-glow); }
-        .nav-item i { font-size: 20px; }
-        .nav-item span { font-size: 9px; margin-top: 4px; font-weight: 900; }
-
-        .track-card { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 10px; display: flex; align-items: center; gap: 12px; margin-bottom: 8px; border-right: 3px solid var(--p-green); }
+        body { font-family: 'JetBrains Mono', monospace; background-color: #050505; color: white; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes pulse-emerald { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+        .animate-pulse-emerald { animation: pulse-emerald 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
     </style>
 </head>
-<body>
+<body class="selection:bg-emerald-500/30">
+    <div id="root"></div>
 
-    <div id="toast" class="toast-msg">QUANTUM_AUDIO_ACTIVE</div>
-    <div class="quantum-scan-bar"></div>
-    
-    <header class="fixed top-6 left-6 right-6 z-[500] flex justify-between items-center pointer-events-none">
-        <div class="bg-black/60 p-3 border-l-4 border-[#00ff88] pointer-events-auto rounded flex items-center gap-3">
-            <i class="fas fa-shield-halved text-[#00ff88] animate-pulse"></i>
-            <span class="font-['Share_Tech_Mono'] text-white text-sm font-black tracking-widest uppercase">Aether_Sentinel</span>
-        </div>
-        <div class="font-['Share_Tech_Mono'] text-[10px] text-[#ff00ff]" id="clock">00:00:00</div>
-    </header>
+    <!-- Dependencies -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
-    <div id="mini-player">
-        <img src="https://via.placeholder.com/50" id="m-thumb" class="w-11 h-11 rounded-lg object-cover">
-        <div class="flex-1 mr-3 text-right">
-            <p class="text-xs text-white font-bold truncate" id="m-title">Ready to Stream</p>
-            <p class="text-[9px] text-[#00ff88] opacity-70 uppercase tracking-tighter" id="m-artist">Matrix_Active</p>
-        </div>
-        <div class="flex gap-4 items-center">
-            <i class="fas fa-backward-step opacity-40"></i>
-            <i class="fas fa-play-circle text-3xl text-white" id="m-play-btn" onclick="togglePlayback()"></i>
-            <i class="fas fa-forward-step opacity-40"></i>
-        </div>
-    </div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+        const { motion, AnimatePresence } = FramerMotion;
 
-    <main class="master-engine" id="video-stack"></main>
+        // --- Firebase Configuration ---
+        const firebaseConfig = {
+            databaseURL: "https://gorm-b3316-default-rtdb.firebaseio.com/"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-    <div id="playlist-panel">
-        <div class="flex justify-between items-center mb-8 border-b border-[#00ff88]/20 pb-4 text-right">
-            <h2 class="font-['Share_Tech_Mono'] text-[#00ff88] text-xl font-bold uppercase">Mega_Hit_Mix</h2>
-            <i class="fas fa-xmark text-2xl opacity-30" onclick="closePanels()"></i>
-        </div>
-        <div id="track-list" class="space-y-2">
-            </div>
-    </div>
-
-    <nav>
-        <div class="nav-item active" onclick="switchMode('video', this)"><i class="fas fa-video"></i><span>الرئيسية</span></div>
-        <div class="nav-item" onclick="switchMode('music', this)"><i class="fas fa-music"></i><span>الموسيقى</span></div>
-        <div class="nav-item" onclick="myWidget.open()"><i class="fas fa-square-plus text-3xl text-[#00ff88]"></i><span>رفع</span></div>
-        <div class="nav-item" onclick="toggleChat()"><i class="fas fa-satellite-dish"></i><span>اتصال</span></div>
-        <div class="nav-item" onclick="checkAdmin()"><i class="fas fa-terminal"></i><span>لوحة</span></div>
-    </nav>
-
-    <script>
-        const MASTER_KEY = "1234";
-        const ADS = { 
-            LIKE: "https://www.effectivegatecpm.com/kckhwnffm5?key=a044912bc242a8918aac753c22e082b1",
-            CHAT: "https://www.effectivegatecpm.com/fd8bgr2e?key=c5bd0ed87d0ddc0c53101f52264d4b1e"
+        // --- Lucide Icon Component Wrapper ---
+        const Icon = ({ name, size = 24, className = "", fill = "none" }) => {
+            const [iconSvg, setIconSvg] = useState("");
+            useEffect(() => {
+                const svg = lucide.createIcons({
+                    icons: { [name]: lucide[name] },
+                    attrs: { stroke: "currentColor", "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round", fill }
+                });
+            }, [name, fill]);
+            const LucideIcon = lucide[name];
+            return LucideIcon ? <LucideIcon size={size} className={className} /> : null;
         };
 
-        firebase.initializeApp({ databaseURL: "https://gorm-b3316-default-rtdb.firebaseio.com/" });
-        const db = firebase.database();
-        const USR_ID = "SENTINEL-" + Math.floor(Math.random()*9999);
+        // --- Main Application ---
+        function App() {
+            const [tracks, setTracks] = useState([]);
+            const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+            const [isPlaying, setIsPlaying] = useState(false);
+            const [progress, setProgress] = useState(0);
+            const [duration, setDuration] = useState(0);
+            const [volume, setVolume] = useState(0.8);
+            const [isMuted, setIsMuted] = useState(false);
+            const [repeatMode, setRepeatMode] = useState('off'); // off, all, one
+            const [isShuffle, setIsShuffle] = useState(false);
+            const [showLyrics, setShowLyrics] = useState(false);
+            const [searchQuery, setSearchQuery] = useState('');
+            const [isSearching, setIsSearching] = useState(false);
+            const [toasts, setToasts] = useState([]);
+            const [extractedColor, setExtractedColor] = useState('#1DB954');
 
-        setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-GB'); }, 1000);
+            const audioRef = useRef(new Audio());
+            const canvasRef = useRef(null);
+            const analyserRef = useRef(null);
+            const lyricsContainerRef = useRef(null);
 
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            t.innerText = msg; t.style.display = 'block';
-            setTimeout(() => t.style.display = 'none', 2000);
-        }
+            const currentTrack = tracks[currentTrackIndex];
 
-        // جلب المحتوى من Firebase
-        db.ref('sentinel_content').on('value', snap => {
-            const stack = document.getElementById('video-stack');
-            const tracks = document.getElementById('track-list');
-            const data = snap.val();
-            if(!data) return;
-            
-            stack.innerHTML = ''; tracks.innerHTML = '';
-            Object.keys(data).reverse().forEach(id => {
-                const item = data[id];
-                // واجهة الفيديو
-                stack.innerHTML += `
-                    <section class="v-seg">
-                        <div class="ion-hud">
-                            <div class="hud-scan"></div>
-                        </div>
-                        <video id="vid-${id}" loop playsinline muted data-src="${item.url}" onclick="this.paused?this.play():this.pause()"></video>
-                        <div class="action-sidebar">
-                            <div class="tactical-btn" onclick="window.open('${ADS.LIKE}'); triggerLike('${id}')">
-                                <i class="fas fa-heart-pulse text-[#00ff88]"></i>
-                                <span class="text-white text-[9px] mt-1">${item.likes || 0}</span>
-                            </div>
-                            <div class="tactical-btn text-[#ff00ff]" onclick="toggleChat()">
-                                <i class="fas fa-rss"></i>
-                            </div>
-                        </div>
-                    </section>`;
-                // واجهة الموسيقى (Spotify Style)
-                tracks.innerHTML += `
-                    <div class="track-card" onclick="playAudio('${item.url}', '${id}')">
-                        <i class="fas fa-ellipsis-vertical opacity-20 ml-2"></i>
-                        <div class="flex-1 text-right">
-                            <p class="text-white text-sm font-bold truncate">Intel_Track_${id.substring(0,5)}</p>
-                            <p class="text-[9px] text-gray-500 uppercase">Aether_Station_Node</p>
-                        </div>
-                        <img src="${item.url.replace('.mp4', '.jpg')}" class="w-12 h-12 rounded object-cover bg-black" onerror="this.src='https://via.placeholder.com/50/000/00ff88?text=A'">
-                    </div>`;
-            });
-            initObserver();
-        });
-
-        function switchMode(mode, el) {
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            el.classList.add('active');
-            if(mode === 'music') { document.getElementById('playlist-panel').style.display = 'flex'; }
-            else { closePanels(); }
-        }
-
-        function playAudio(url, id) {
-            const player = document.getElementById('mini-player');
-            document.getElementById('m-title').innerText = "Streaming: " + id.substring(0,8);
-            document.getElementById('m-thumb').src = url.replace('.mp4', '.jpg');
-            player.style.display = 'flex';
-            showToast("AUDIO_SYNC_LOCKED");
-        }
-
-        const myWidget = cloudinary.createUploadWidget({ 
-            cloudName: "dlgwjrf8b", uploadPreset: "LZPI_5", 
-            sources: ['local'], multiple: false
-        }, (err, res) => {
-            if (!err && res.event === "success") {
-                db.ref('sentinel_content/').push({ url: res.info.secure_url, likes: 0, timestamp: Date.now() });
-                showToast("CORE_UPLOADED");
-            }
-        });
-
-        function closePanels() { 
-            document.getElementById('playlist-panel').style.display = 'none'; 
-            document.getElementById('admin-panel').style.display = 'none'; 
-            document.getElementById('chat-panel').style.display = 'none';
-        }
-
-        function initObserver() {
-            const obs = new IntersectionObserver(es => {
-                es.forEach(e => {
-                    const v = e.target.querySelector('video');
-                    if(e.isIntersecting) { if(!v.src) v.src = v.dataset.src; e.target.classList.add('active'); v.play().catch(()=>{}); } 
-                    else { e.target.classList.remove('active'); v.pause(); }
+            // --- Initialization & Data Fetching ---
+            useEffect(() => {
+                const tracksRef = db.ref('tracks');
+                tracksRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        const trackList = Object.entries(data).map(([id, val]) => ({ id, ...val }));
+                        setTracks(trackList);
+                    }
                 });
-            }, { threshold: 0.65 });
-            document.querySelectorAll('.v-seg').forEach(s => obs.observe(s));
+                return () => tracksRef.off();
+            }, []);
+
+            // --- Audio Engine & Visualizer ---
+            useEffect(() => {
+                if (!analyserRef.current) {
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const analyser = audioCtx.createAnalyser();
+                    const source = audioCtx.createMediaElementSource(audioRef.current);
+                    source.connect(analyser);
+                    analyser.connect(audioCtx.destination);
+                    analyser.fftSize = 256;
+                    analyserRef.current = analyser;
+                }
+
+                const animate = () => {
+                    if (!canvasRef.current || !analyserRef.current) return;
+                    const canvas = canvasRef.current;
+                    const ctx = canvas.getContext('2d');
+                    const bufferLength = analyserRef.current.frequencyBinCount;
+                    const dataArray = new Uint8Array(bufferLength);
+                    analyserRef.current.getByteFrequencyData(dataArray);
+
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    const barWidth = (canvas.width / bufferLength) * 2.5;
+                    let x = 0;
+
+                    for (let i = 0; i < bufferLength; i++) {
+                        const barHeight = (dataArray[i] / 255) * canvas.height;
+                        ctx.fillStyle = `rgba(16, 185, 129, ${dataArray[i] / 255})`;
+                        ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                        x += barWidth + 1;
+                    }
+                    requestAnimationFrame(animate);
+                };
+                animate();
+            }, []);
+
+            // --- Playback Logic ---
+            useEffect(() => {
+                if (currentTrack) {
+                    audioRef.current.src = currentTrack.url;
+                    if (isPlaying) audioRef.current.play().catch(() => setIsPlaying(false));
+                    addToast(`[SYNCING_SECURE_AUDIO]: ${currentTrack.title}`);
+                    extractColor(currentTrack.artwork);
+                }
+            }, [currentTrackIndex]);
+
+            useEffect(() => {
+                isPlaying ? audioRef.current.play() : audioRef.current.pause();
+            }, [isPlaying]);
+
+            useEffect(() => {
+                audioRef.current.volume = isMuted ? 0 : volume;
+            }, [volume, isMuted]);
+
+            useEffect(() => {
+                const audio = audioRef.current;
+                const updateProgress = () => setProgress(audio.currentTime);
+                const updateDuration = () => setDuration(audio.duration);
+                const handleEnd = () => {
+                    if (repeatMode === 'one') {
+                        audio.currentTime = 0;
+                        audio.play();
+                    } else {
+                        handleNext();
+                    }
+                };
+
+                audio.addEventListener('timeupdate', updateProgress);
+                audio.addEventListener('loadedmetadata', updateDuration);
+                audio.addEventListener('ended', handleEnd);
+                return () => {
+                    audio.removeEventListener('timeupdate', updateProgress);
+                    audio.removeEventListener('loadedmetadata', updateDuration);
+                    audio.removeEventListener('ended', handleEnd);
+                };
+            }, [currentTrackIndex, repeatMode, isShuffle]);
+
+            const handleNext = () => {
+                if (isShuffle) {
+                    setCurrentTrackIndex(Math.floor(Math.random() * tracks.length));
+                } else {
+                    setCurrentTrackIndex((prev) => (prev + 1) % tracks.length);
+                }
+                playSound('hum');
+            };
+
+            const handlePrev = () => {
+                setCurrentTrackIndex((prev) => (prev - 1 + tracks.length) % tracks.length);
+                playSound('hum');
+            };
+
+            // --- Helpers ---
+            const addToast = (msg) => {
+                const id = Date.now();
+                setToasts(prev => [...prev, { id, msg }]);
+                setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
+            };
+
+            const playSound = (type) => {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                if (type === 'click') {
+                    osc.frequency.setValueAtTime(800, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+                } else {
+                    osc.frequency.setValueAtTime(150, ctx.currentTime);
+                    gain.gain.setValueAtTime(0.05, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                }
+                osc.start();
+                osc.stop(ctx.currentTime + 0.3);
+            };
+
+            const extractColor = (url) => {
+                if (!url) return;
+                const img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.src = url;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = 1; canvas.height = 1;
+                    ctx.drawImage(img, 0, 0, 1, 1);
+                    const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+                    setExtractedColor(`rgb(${r}, ${g}, ${b})`);
+                };
+            };
+
+            const activeLyricIndex = useMemo(() => {
+                if (!currentTrack?.lyrics) return 0;
+                return Math.floor(progress / 4) % currentTrack.lyrics.length;
+            }, [progress, currentTrack]);
+
+            useEffect(() => {
+                if (showLyrics && lyricsContainerRef.current) {
+                    const active = lyricsContainerRef.current.children[activeLyricIndex];
+                    if (active) active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, [activeLyricIndex, showLyrics]);
+
+            const filteredTracks = tracks.filter(t => 
+                t.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                t.artist.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+
+            // --- Cloudinary Upload ---
+            const openUploadWidget = () => {
+                playSound('click');
+                window.cloudinary.openUploadWidget({
+                    cloudName: 'dlgwjrf8b',
+                    uploadPreset: 'LZPI_5',
+                    sources: ['local', 'url'],
+                    multiple: false
+                }, (error, result) => {
+                    if (!error && result && result.event === "success") {
+                        const newTrack = {
+                            title: result.info.original_filename || "New Track",
+                            artist: "Unknown Artist",
+                            url: result.info.secure_url,
+                            artwork: "https://picsum.photos/seed/new/300/300",
+                            likes: 0,
+                            lyrics: ["[ENCRYPTED_LYRICS_NODE]", "Aether Sentinel Core Active", "Shadow Core Syncing..."]
+                        };
+                        db.ref('tracks').push(newTrack);
+                        addToast("[UPLOAD_COMPLETE]: NODE_ADDED_TO_MATRIX");
+                    }
+                });
+            };
+
+            if (tracks.length === 0) return <div className="h-screen flex items-center justify-center text-emerald-500 font-black animate-pulse">INITIALIZING_MATRIX...</div>;
+
+            return (
+                <div className="min-h-screen bg-[#050505] text-white flex flex-col overflow-hidden relative">
+                    {/* Dynamic Glow */}
+                    <div className="fixed inset-0 pointer-events-none transition-all duration-1000 opacity-20"
+                         style={{ background: `radial-gradient(circle at 50% 0%, ${extractedColor} 0%, transparent 80%)` }} />
+
+                    {/* Header */}
+                    <header className="relative z-10 px-6 pt-12 pb-6 bg-gradient-to-b from-black/80 to-transparent">
+                        <div className="flex items-center justify-between mb-8">
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h1 className="text-xl font-black tracking-tighter text-emerald-500">AETHER_SENTINEL</h1>
+                                    <div className="bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded flex items-center gap-1">
+                                        <Icon name="ShieldCheck" size={10} className="text-emerald-500" />
+                                        <span className="text-[8px] font-black text-emerald-500 uppercase">Premium</span>
+                                    </div>
+                                </div>
+                                <span className="text-[9px] opacity-40">SHADOW_CORE_SYSTEM_v2.5 // SECURE_LINK_ACTIVE</span>
+                            </div>
+                            <div className="flex gap-3">
+                                <button onClick={() => { setIsSearching(!isSearching); playSound('click'); }} className={`p-2 rounded-full transition-all ${isSearching ? 'bg-emerald-500 text-black' : 'bg-white/5'}`}>
+                                    <Icon name="Search" size={18} />
+                                </button>
+                                <button className="p-2 rounded-full bg-white/5"><Icon name="MoreHorizontal" size={18} /></button>
+                            </div>
+                        </div>
+
+                        {isSearching && (
+                            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+                                <input type="text" placeholder="SEARCH_MATRIX..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-emerald-500/50" />
+                            </motion.div>
+                        )}
+
+                        <div className="flex items-end gap-6">
+                            <img src={currentTrack.artwork} className="w-32 h-32 rounded-lg shadow-2xl border border-white/10" />
+                            <div>
+                                <span className="text-[9px] uppercase tracking-widest text-emerald-500 font-black">Playlist</span>
+                                <h2 className="text-3xl font-black tracking-tighter leading-none">MEGA_HIT_MIX</h2>
+                                <div className="flex gap-3 mt-2 text-[10px] opacity-60">
+                                    <span>{filteredTracks.length} NODES</span>
+                                    <span>SHADOW_CORE</span>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Main */}
+                    <main className="flex-1 overflow-y-auto px-4 pb-40 scrollbar-hide relative z-10">
+                        <canvas ref={canvasRef} width={400} height={60} className="w-full h-12 opacity-40 mb-6" />
+
+                        <button onClick={() => { setShowLyrics(!showLyrics); playSound('click'); }} className="w-full p-4 bg-white/5 rounded-xl border border-white/5 flex justify-between items-center mb-6">
+                            <span className="text-[10px] font-black uppercase tracking-widest">Lyrics_Canvas</span>
+                            <Icon name={showLyrics ? "ChevronDown" : "ChevronUp"} size={14} />
+                        </button>
+
+                        <AnimatePresence>
+                            {showLyrics && (
+                                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                                    <div ref={lyricsContainerRef} className="py-4 flex flex-col gap-4 max-h-60 overflow-y-auto scrollbar-hide">
+                                        {currentTrack.lyrics?.map((line, i) => (
+                                            <p key={i} className={`text-lg font-black transition-all duration-500 ${i === activeLyricIndex ? 'text-emerald-400 scale-105 origin-left' : 'opacity-20'}`}>{line}</p>
+                                        ))}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        <div className="space-y-1">
+                            {filteredTracks.map((track, idx) => (
+                                <div key={track.id} onClick={() => { setCurrentTrackIndex(tracks.indexOf(track)); setIsPlaying(true); }}
+                                     className={`flex items-center gap-4 p-3 rounded-xl transition-all cursor-pointer ${currentTrack.id === track.id ? 'bg-emerald-500/10 border border-emerald-500/20' : 'hover:bg-white/5'}`}>
+                                    <Icon name="MoreVertical" size={14} className="opacity-20" />
+                                    <div className="flex-1">
+                                        <p className={`text-sm font-black ${currentTrack.id === track.id ? 'text-emerald-500' : ''}`}>{track.title}</p>
+                                        <p className="text-[10px] opacity-40 font-bold">{track.artist}</p>
+                                    </div>
+                                    <img src={track.artwork} className="w-10 h-10 rounded shadow-lg" />
+                                </div>
+                            ))}
+                        </div>
+                    </main>
+
+                    {/* Player */}
+                    <div className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-8 pt-4 bg-gradient-to-t from-black to-black/90 backdrop-blur-xl border-t border-white/5">
+                        <div className="relative w-full h-1 bg-white/10 rounded-full mb-6 cursor-pointer overflow-hidden" onClick={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const x = e.clientX - rect.left;
+                            audioRef.current.currentTime = (x / rect.width) * duration;
+                        }}>
+                            <div className="absolute top-0 left-0 h-full bg-emerald-500 transition-all" style={{ width: `${(progress / duration) * 100}%` }} />
+                        </div>
+
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-3 w-1/3">
+                                <motion.div animate={{ rotate: isPlaying ? 360 : 0 }} transition={{ duration: 10, repeat: Infinity, ease: "linear" }} className="w-12 h-12 rounded-full border-2 border-emerald-500/30 p-1">
+                                    <img src={currentTrack.artwork} className="w-full h-full rounded-full object-cover" />
+                                </motion.div>
+                                <div className="hidden sm:block">
+                                    <p className="text-xs font-black truncate max-w-[120px]">{currentTrack.title}</p>
+                                    <p className="text-[9px] opacity-40 font-bold">{currentTrack.artist}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-6">
+                                <button onClick={() => setIsShuffle(!isShuffle)} className={isShuffle ? 'text-emerald-500' : 'opacity-40'}><Icon name="Shuffle" size={18} /></button>
+                                <button onClick={handlePrev} className="hover:text-emerald-500 transition-colors"><Icon name="SkipBack" size={24} fill="currentColor" /></button>
+                                <button onClick={() => setIsPlaying(!isPlaying)} className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-black hover:scale-110 transition-transform shadow-xl">
+                                    <Icon name={isPlaying ? "Pause" : "Play"} size={28} fill="black" />
+                                </button>
+                                <button onClick={handleNext} className="hover:text-emerald-500 transition-colors"><Icon name="SkipForward" size={24} fill="currentColor" /></button>
+                                <button onClick={() => setRepeatMode(prev => prev === 'off' ? 'all' : prev === 'all' ? 'one' : 'off')} className={repeatMode !== 'off' ? 'text-emerald-500' : 'opacity-40'}>
+                                    <Icon name="Repeat" size={18} />
+                                    {repeatMode === 'one' && <span className="absolute text-[8px] font-black">1</span>}
+                                </button>
+                            </div>
+
+                            <div className="flex items-center gap-3 w-1/3 justify-end group">
+                                <button onClick={() => setIsMuted(!isMuted)} className="opacity-40 group-hover:opacity-100"><Icon name={isMuted || volume === 0 ? "VolumeX" : "Volume2"} size={18} /></button>
+                                <input type="range" min="0" max="1" step="0.01" value={volume} onChange={(e) => setVolume(parseFloat(e.target.value))} className="w-20 accent-emerald-500 h-1 rounded-full bg-white/10 appearance-none cursor-pointer" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Nav */}
+                    <nav className="fixed bottom-0 left-0 right-0 z-[60] bg-black/80 backdrop-blur-md border-t border-white/5 px-8 py-4 flex justify-between items-center sm:hidden">
+                        <button className="text-emerald-500"><Icon name="Home" size={20} /></button>
+                        <button className="opacity-40"><Icon name="Search" size={20} /></button>
+                        <button onClick={openUploadWidget} className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-black shadow-lg"><Icon name="Plus" size={24} /></button>
+                        <button className="opacity-40"><Icon name="Library" size={20} /></button>
+                        <button className="opacity-40"><Icon name="User" size={20} /></button>
+                    </nav>
+
+                    {/* Toasts */}
+                    <div className="fixed top-6 right-6 z-[100] flex flex-col gap-2">
+                        <AnimatePresence>
+                            {toasts.map(t => (
+                                <motion.div key={t.id} initial={{ opacity: 0, x: 20, scale: 0.9 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+                                            className="bg-black/80 backdrop-blur-xl border border-emerald-500/30 px-4 py-2 rounded-lg shadow-2xl flex items-center gap-3">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    <span className="text-[10px] font-black text-emerald-500 tracking-tighter">{t.msg}</span>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                    </div>
+                </div>
+            );
         }
 
-        function toggleChat() { document.getElementById('chat-panel').style.display = 'flex'; }
-        function checkAdmin() { if(prompt("ACCESS_ID:") === MASTER_KEY) document.getElementById('admin-panel').style.display = 'flex'; }
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
